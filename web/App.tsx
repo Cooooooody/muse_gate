@@ -18,6 +18,7 @@ import PaymentCodeGenerator from './components/Sales/PaymentCodeGenerator';
 import ClientPortal from './components/Client/ClientPortal';
 import FinancePanel from './components/Finance/FinancePanel';
 import ContractReview from './components/Admin/ContractReview';
+import LedgerList from './components/Admin/LedgerList';
 import LoginPage from './components/Auth/LoginPage';
 import { getProfile, upsertProfile } from './services/profileApi';
 import { getReminders } from './services/reminderApi';
@@ -198,16 +199,20 @@ const App: React.FC = () => {
       case UserRole.ADMIN:
       case UserRole.SALES:
         if (activeTab === 'review') return <ContractReview />;
+        if (activeTab === 'ledger') return <LedgerList />;
         if (activeTab === 'contract') return <SalesContractEntry />;
         if (activeTab === 'qrcode') return <PaymentCodeGenerator />;
         return <DashboardOverview role={effectiveRole} />;
       case UserRole.SUPERVISOR:
         if (activeTab === 'review') return <ContractReview />;
+        if (activeTab === 'ledger') return <LedgerList />;
         return <DashboardOverview role={effectiveRole} />;
       case UserRole.CLIENT:
-        return <ClientPortal />;
+        if (activeTab === 'client') return <ClientPortal />;
+        return <DashboardOverview role={effectiveRole} />;
       case UserRole.FINANCE:
-        return <FinancePanel />;
+        if (activeTab === 'finance') return <FinancePanel />;
+        return <DashboardOverview role={effectiveRole} />;
       default:
         return <DashboardOverview role={effectiveRole} />;
     }
@@ -273,24 +278,39 @@ const App: React.FC = () => {
           )}
 
           {isReviewRole && (
-            <button 
-              onClick={() => setActiveTab('review')}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${activeTab === 'review' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}
-            >
-              <ShieldCheck size={20} />
-              <span>合同审核</span>
-            </button>
+            <>
+              <button 
+                onClick={() => setActiveTab('review')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${activeTab === 'review' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}
+              >
+                <ShieldCheck size={20} />
+                <span>合同审核</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('ledger')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${activeTab === 'ledger' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}
+              >
+                <CreditCard size={20} />
+                <span>入账记录</span>
+              </button>
+            </>
           )}
 
           {effectiveRole === UserRole.CLIENT && (
-            <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+            <button
+              onClick={() => setActiveTab('client')}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${activeTab === 'client' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}
+            >
               <History size={20} />
               <span>合同 & 发票</span>
             </button>
           )}
 
           {effectiveRole === UserRole.FINANCE && (
-            <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+            <button
+              onClick={() => setActiveTab('finance')}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${activeTab === 'finance' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}
+            >
               <CreditCard size={20} />
               <span>对账中心</span>
             </button>

@@ -19,6 +19,7 @@ const FinancePanel: React.FC = () => {
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [newPayment, setNewPayment] = useState({
     senderName: '',
@@ -27,28 +28,26 @@ const FinancePanel: React.FC = () => {
     mgAccount: '',
   });
 
-  const fetchUnmatched = () => {
+  const fetchUnmatched = async () => {
     setIsLoading(true);
-    getUnmatchedPayments()
-      .then((list) => {
-        const mapped = list.map((item) => ({
-          id: item.paymentId,
-          type: item.paymentType === 'bank_transfer' ? PaymentType.BANK_TRANSFER : PaymentType.QR,
-          amount: item.amount,
-          senderName: item.mgAccount || item.paymentId,
-          date: item.occurredAt || '',
-          isMatched: false,
-          mgAccount: item.mgAccount,
-        }));
-        setPayments(mapped);
-        setErrorMessage(null);
-      })
-      .catch(() => {
-        setErrorMessage('无法加载对账数据，请稍后重试。');
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    try {
+      const list = await getUnmatchedPayments();
+      const mapped = list.map((item) => ({
+        id: item.paymentId,
+        type: item.paymentType === 'bank_transfer' ? PaymentType.BANK_TRANSFER : PaymentType.QR,
+        amount: item.amount,
+        senderName: item.mgAccount || item.paymentId,
+        date: item.occurredAt || '',
+        isMatched: false,
+        mgAccount: item.mgAccount,
+      }));
+      setPayments(mapped);
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage('无法加载对账数据，请稍后重试。');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const fetchMismatch = () => {
@@ -77,6 +76,8 @@ const FinancePanel: React.FC = () => {
 
   const handleAddPayment = async () => {
     if (!newPayment.senderName || !newPayment.amount) return;
+    setSuccessMessage(null);
+    setErrorMessage(null);
     try {
       await createBankTransfer({
         senderName: newPayment.senderName,
@@ -90,7 +91,8 @@ const FinancePanel: React.FC = () => {
         date: new Date().toISOString().split('T')[0],
         mgAccount: '',
       });
-      fetchUnmatched();
+      setSuccessMessage('录入成功。');
+      await fetchUnmatched();
     } catch (error) {
       setErrorMessage('录入失败，请稍后重试。');
     }
@@ -152,6 +154,9 @@ const FinancePanel: React.FC = () => {
               >
                 确认录入
               </button>
+              {successMessage && (
+                <div className="text-sm text-emerald-600">{successMessage}</div>
+              )}
             </div>
           </div>
         </div>
@@ -173,6 +178,9 @@ const FinancePanel: React.FC = () => {
               )}
               {errorMessage && (
                 <div className="p-6 text-sm text-red-500">{errorMessage}</div>
+              )}
+              {successMessage && (
+                <div className="p-6 text-sm text-emerald-600">{successMessage}</div>
               )}
               {!isLoading && !errorMessage && payments.length === 0 && (
                 <div className="p-6 text-sm text-slate-500">暂无未匹配记录。</div>

@@ -36,6 +36,10 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
   if (!text) {
     return undefined as T;
   }
+  const contentType = response.headers.get('Content-Type') || '';
+  if (!contentType.includes('application/json')) {
+    return text as unknown as T;
+  }
   try {
     return JSON.parse(text) as T;
   } catch {

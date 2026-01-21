@@ -55,7 +55,8 @@ public class PaymentAcl {
 
   public List<UnmatchedPaymentDto> findUnmatchedPayments() {
     List<UnmatchedPaymentDto> results = new ArrayList<>();
-    List<BankTransfer> transfers = bankTransferMapper.selectList(new LambdaQueryWrapper<>());
+    List<BankTransfer> transfers = bankTransferMapper.selectList(
+        new LambdaQueryWrapper<BankTransfer>().orderByDesc(BankTransfer::getCreatedAt));
     for (BankTransfer transfer : transfers) {
       boolean matched = contractPaymentMapper.selectCount(
           new LambdaQueryWrapper<ContractPayment>()
@@ -71,7 +72,8 @@ public class PaymentAcl {
         results.add(dto);
       }
     }
-    List<QrPayment> qrPayments = qrPaymentMapper.selectList(new LambdaQueryWrapper<>());
+    List<QrPayment> qrPayments = qrPaymentMapper.selectList(
+        new LambdaQueryWrapper<QrPayment>().orderByDesc(QrPayment::getCreatedAt));
     for (QrPayment payment : qrPayments) {
       boolean matched = contractPaymentMapper.selectCount(
           new LambdaQueryWrapper<ContractPayment>()

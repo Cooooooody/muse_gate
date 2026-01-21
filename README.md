@@ -31,6 +31,7 @@ npm run dev -- --host
 - `docs/manuals/提醒机制测试手册.md`
 - `docs/manuals/合同审核与确认测试手册.md`
 - `docs/manuals/合同审核与确认测试完成记录.md`
+- `docs/manuals/后台Muse点充值逻辑测试手册.md`
 - `docs/manuals/主体选择与校验测试手册.md`
 - `docs/manuals/登录与鉴权测试手册.md`
 - `docs/manuals/登录与鉴权测试完成记录.md`
