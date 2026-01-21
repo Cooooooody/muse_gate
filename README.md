@@ -28,6 +28,8 @@ npm run dev -- --host
 - `docs/manuals/销售端合同录入测试手册.md`
 - `docs/manuals/财务录入与对账测试手册.md`
 - `docs/manuals/提醒机制测试手册.md`
+- `docs/manuals/合同审核与确认测试手册.md`
+- `docs/manuals/主体选择与校验测试手册.md`
 
 ## 需求澄清
 
