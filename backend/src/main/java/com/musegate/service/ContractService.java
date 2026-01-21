@@ -40,6 +40,10 @@ public class ContractService {
     return response;
   }
 
+  public void submitContract(String contractId) {
+    contractAcl.updateStatus(contractId, "pending_approval");
+  }
+
   private Subject buildSubject(SubjectInput input, String subjectId) {
     if (subjectId != null && !subjectId.isBlank()) {
       return null;

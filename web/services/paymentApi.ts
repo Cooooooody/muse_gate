@@ -16,7 +16,19 @@ export type UnmatchedPaymentDto = {
   occurredAt?: string;
 };
 
+export type MismatchPaymentDto = {
+  paymentId: string;
+  paymentType: 'bank_transfer' | 'qr';
+  paidAmount: number;
+  contractAmount: number;
+  mgAccount?: string;
+  occurredAt?: string;
+};
+
 export const getPaymentMatches = (mgAccount: string) =>
   apiGet<PaymentMatchDto[]>(`/api/payments/matches?mgAccount=${encodeURIComponent(mgAccount)}`);
 
 export const getUnmatchedPayments = () => apiGet<UnmatchedPaymentDto[]>('/api/payments/unmatched');
+
+export const getMismatchPayments = () =>
+  apiGet<MismatchPaymentDto[]>('/api/reconciliation/mismatch');

@@ -20,6 +20,11 @@ public class ContractController {
     return contractService.createContract(request);
   }
 
+  @PostMapping("/{contractId}/submit")
+  public void submit(@PathVariable String contractId) {
+    contractService.submitContract(contractId);
+  }
+
   @PostMapping("/{contractId}/confirm")
   public ConfirmContractResponse confirm(@PathVariable String contractId) {
     return confirmService.confirm(contractId);

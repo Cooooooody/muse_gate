@@ -3,10 +3,20 @@ import React, { useEffect, useState } from 'react';
 import { CreditCard, ArrowRightLeft, CheckCircle2, AlertCircle, Search, Plus } from 'lucide-react';
 import { PaymentRecord, PaymentType } from '../../types';
 import { createBankTransfer } from '../../services/financeApi';
-import { getUnmatchedPayments } from '../../services/paymentApi';
+import { getMismatchPayments, getUnmatchedPayments } from '../../services/paymentApi';
 
 const FinancePanel: React.FC = () => {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [mismatchPayments, setMismatchPayments] = useState<
+    {
+      paymentId: string;
+      paymentType: PaymentType;
+      paidAmount: number;
+      contractAmount: number;
+      mgAccount?: string;
+      occurredAt?: string;
+    }[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -41,8 +51,28 @@ const FinancePanel: React.FC = () => {
       });
   };
 
+  const fetchMismatch = () => {
+    getMismatchPayments()
+      .then((list) => {
+        setMismatchPayments(
+          list.map((item) => ({
+            paymentId: item.paymentId,
+            paymentType: item.paymentType === 'bank_transfer' ? PaymentType.BANK_TRANSFER : PaymentType.QR,
+            paidAmount: item.paidAmount,
+            contractAmount: item.contractAmount,
+            mgAccount: item.mgAccount,
+            occurredAt: item.occurredAt,
+          }))
+        );
+      })
+      .catch(() => {
+        setMismatchPayments([]);
+      });
+  };
+
   useEffect(() => {
     fetchUnmatched();
+    fetchMismatch();
   }, []);
 
   const handleAddPayment = async () => {
@@ -193,22 +223,32 @@ const FinancePanel: React.FC = () => {
             <div className="space-y-4">
               <div className="p-4 bg-white rounded-xl border border-amber-100 shadow-sm flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-bold text-slate-800">款项未录合同 (3笔)</div>
+                  <div className="text-sm font-bold text-slate-800">款项未录合同 ({payments.length}笔)</div>
                   <p className="text-xs text-slate-500">存在到账超过48小时未被销售关联的流水</p>
                 </div>
                 <button className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold rounded-lg transition">
                   通知销售负责人
                 </button>
               </div>
-              <div className="p-4 bg-white rounded-xl border border-amber-100 shadow-sm flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold text-slate-800">金额不匹配 (1笔)</div>
-                  <p className="text-xs text-slate-500">销售录入金额(￥10,000)与实收金额(￥9,500)不符</p>
+              {mismatchPayments.length === 0 ? (
+                <div className="p-4 bg-white rounded-xl border border-amber-100 shadow-sm text-sm text-slate-500">
+                  暂无金额不一致记录
                 </div>
-                <button className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-bold rounded-lg transition">
-                  人工核对
-                </button>
-              </div>
+              ) : (
+                mismatchPayments.map((item) => (
+                  <div key={item.paymentId} className="p-4 bg-white rounded-xl border border-amber-100 shadow-sm flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-slate-800">金额不匹配</div>
+                      <p className="text-xs text-slate-500">
+                        实收￥{item.paidAmount.toLocaleString()} / 合同￥{item.contractAmount.toLocaleString()} · {item.mgAccount || item.paymentId}
+                      </p>
+                    </div>
+                    <button className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 text-xs font-bold rounded-lg transition">
+                      人工核对
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

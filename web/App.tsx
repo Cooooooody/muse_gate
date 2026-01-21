@@ -19,29 +19,33 @@ import PaymentCodeGenerator from './components/Sales/PaymentCodeGenerator';
 import ClientPortal from './components/Client/ClientPortal';
 import FinancePanel from './components/Finance/FinancePanel';
 import { UserRole, PaymentRecord, PaymentType } from './types';
-import { getUnmatchedPayments } from './services/paymentApi';
+import { getReminders } from './services/reminderApi';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.SALES);
   const [showReminder, setShowReminder] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [reminderAccount, setReminderAccount] = useState<string | null>(null);
+  const [reminderAmount, setReminderAmount] = useState<string | null>(null);
 
   // Simulated logic for daily sales reminder
   useEffect(() => {
     if (role === UserRole.SALES) {
-      getUnmatchedPayments()
+      getReminders()
         .then((list) => {
           if (list.length > 0) {
-            setReminderAccount(list[0].mgAccount || list[0].paymentId);
+            setReminderAccount(list[0].mgAccount);
+            setReminderAmount(list[0].amount.toLocaleString());
             setShowReminder(true);
           } else {
             setReminderAccount(null);
+            setReminderAmount(null);
             setShowReminder(false);
           }
         })
         .catch(() => {
           setReminderAccount(null);
+          setReminderAmount(null);
         });
     }
   }, [role]);
@@ -166,7 +170,8 @@ const App: React.FC = () => {
             </div>
             <h3 className="text-2xl font-bold text-center text-slate-900 mb-2">待录入合同提醒</h3>
             <p className="text-slate-500 text-center mb-8">
-              系统检测到您有名下客户（MG账号: {reminderAccount || '未知'}）已完成公对公转账。请尽快补充合同信息以完成后续流程。
+              系统检测到您有名下客户（MG账号: {reminderAccount || '未知'}）已完成公对公转账
+              {reminderAmount ? ` ${reminderAmount} 元` : ''}。请尽快补充合同信息以完成后续流程。
             </p>
             <div className="space-y-3">
               <button 

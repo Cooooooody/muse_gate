@@ -43,3 +43,6 @@ export const createContract = (payload: CreateContractRequest) =>
 
 export const confirmContract = (contractId: string) =>
   apiPost<ConfirmContractResponse>(`/api/contracts/${contractId}/confirm`);
+
+export const submitContract = (contractId: string) =>
+  apiPost<void>(`/api/contracts/${contractId}/submit`);

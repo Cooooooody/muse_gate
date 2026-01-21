@@ -4,15 +4,16 @@ import { Search, Info, CheckCircle2, AlertCircle, FileText, Send, Eye } from 'lu
 import { PaymentType, Subject, PaymentRecord, ContractStatus } from '../../types';
 import { STANDARD_AMOUNTS, MOCK_PACKAGES } from '../../constants';
 import { generateContractPreview } from '../../services/geminiService';
-import { createContract } from '../../services/contractApi';
+import { createContract, submitContract } from '../../services/contractApi';
 import { getPaymentMatches } from '../../services/paymentApi';
+import { getBankHistory, getClientSubjects, verifySubject } from '../../services/subjectApi';
 
 const SalesContractEntry: React.FC = () => {
   const [step, setStep] = useState(1);
   const [isBankTransfer, setIsBankTransfer] = useState(false);
   const [subjectName, setSubjectName] = useState('');
   const [isManualInput, setIsManualInput] = useState(false);
-  const [matchedPayment, setMatchedPayment] = useState<PaymentRecord | null>(null);
+  const [selectedPayments, setSelectedPayments] = useState<PaymentRecord[]>([]);
   const [amount, setAmount] = useState<number>(0);
   const [bonusItems, setBonusItems] = useState<string[]>([]);
   const [previewContent, setPreviewContent] = useState<string>('');
@@ -21,6 +22,7 @@ const SalesContractEntry: React.FC = () => {
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -30,18 +32,49 @@ const SalesContractEntry: React.FC = () => {
     taxId: '',
   });
 
-  // Mock History for Public-to-Public
-  const [bankHistory] = useState<Subject[]>([
-    { id: '1', name: '上海世纪出版集团', taxId: '9131000012345678X', source: 'BANK' },
-    { id: '2', name: '阿里巴巴(中国)网络技术有限公司', taxId: '9133010071256055X', source: 'BANK' },
-  ]);
-
-  const [clientSubjects] = useState<Subject[]>([
-    { id: '3', name: '个人主体A', source: 'CLIENT_ENTRY' },
-  ]);
+  const [bankHistory, setBankHistory] = useState<Subject[]>([]);
+  const [clientSubjects, setClientSubjects] = useState<Subject[]>([]);
 
   useEffect(() => {
-    if (!isBankTransfer || !formData.mgAccount) {
+    getClientSubjects()
+      .then((subjects) => {
+        setClientSubjects(
+          subjects.map((item) => ({
+            id: item.id,
+            name: item.name,
+            taxId: item.taxId,
+            address: item.address,
+            source: 'CLIENT_ENTRY',
+          }))
+        );
+      })
+      .catch(() => {
+        setClientSubjects([]);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!isBankTransfer) {
+      setBankHistory([]);
+      return;
+    }
+    getBankHistory(subjectName.trim() ? subjectName.trim() : undefined)
+      .then((subjects) => {
+        setBankHistory(
+          subjects.map((item) => ({
+            id: item.id,
+            name: item.name,
+            taxId: item.taxId,
+            address: item.address,
+            source: 'BANK',
+          }))
+        );
+      })
+      .catch(() => setBankHistory([]));
+  }, [isBankTransfer, subjectName]);
+
+  useEffect(() => {
+    if (!formData.mgAccount) {
       setPaymentMatches([]);
       setMatchError(null);
       return;
@@ -68,15 +101,59 @@ const SalesContractEntry: React.FC = () => {
       .finally(() => {
         setIsLoadingMatches(false);
       });
-  }, [isBankTransfer, formData.mgAccount]);
+  }, [formData.mgAccount]);
+
+  useEffect(() => {
+    if (selectedPayments.length === 0) {
+      return;
+    }
+    const total = selectedPayments.reduce((sum, item) => sum + item.amount, 0);
+    setAmount(total);
+  }, [selectedPayments]);
 
   const handleSubjectSelect = (name: string) => {
     setSubjectName(name);
     setIsManualInput(false);
   };
 
+  const togglePayment = (payment: PaymentRecord) => {
+    if (payment.type === PaymentType.QR) {
+      setSelectedPayments([payment]);
+      return;
+    }
+    setSelectedPayments((prev) => {
+      const exists = prev.some((item) => item.id === payment.id);
+      if (exists) {
+        return prev.filter((item) => item.id !== payment.id);
+      }
+      const filtered = prev.filter((item) => item.type !== PaymentType.QR);
+      return [...filtered, payment];
+    });
+  };
+
+  const handleVerify = async () => {
+    if (!subjectName) return;
+    setVerifyMessage(null);
+    try {
+      const result = await verifySubject({
+        name: subjectName,
+        taxId: formData.taxId || undefined,
+        address: formData.address || undefined,
+      });
+      setSubjectName(result.name);
+      setFormData((prev) => ({
+        ...prev,
+        taxId: result.taxId,
+        address: result.address,
+      }));
+      setVerifyMessage('主体信息校验通过（mock）。');
+    } catch {
+      setVerifyMessage('校验失败，请稍后重试。');
+    }
+  };
+
   const nextStep = async () => {
-    if (step === 2 && isBankTransfer && paymentMatches.length > 0 && !matchedPayment) {
+    if (step === 2 && isBankTransfer && paymentMatches.length > 0 && selectedPayments.length === 0) {
       setMatchError('请选择一笔匹配的付款记录后再继续。');
       return;
     }
@@ -120,18 +197,17 @@ const SalesContractEntry: React.FC = () => {
         items,
         bonusItems: bonus,
         createdBy: formData.mgAccount || undefined,
-        payments: matchedPayment
-          ? [
-              {
-                paymentId: matchedPayment.id,
-                paymentType:
-                  matchedPayment.type === PaymentType.BANK_TRANSFER ? 'bank_transfer' : 'qr',
-                amount: matchedPayment.amount,
-              },
-            ]
+        payments: selectedPayments.length > 0
+          ? selectedPayments.map((payment) => ({
+              paymentId: payment.id,
+              paymentType:
+                payment.type === PaymentType.BANK_TRANSFER ? 'bank_transfer' : 'qr',
+              amount: payment.amount,
+            }))
           : undefined,
       });
-      alert(`合同已提交，编号：${response.contractId}`);
+      await submitContract(response.contractId);
+      alert(`合同已提交审核，编号：${response.contractId}`);
     } catch (error) {
       setSubmitError('提交失败，请检查网络或稍后重试。');
     }
@@ -256,6 +332,16 @@ const SalesContractEntry: React.FC = () => {
                   className="w-full border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                 ></textarea>
               </div>
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={handleVerify}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  企查查校验（mock）
+                </button>
+                {verifyMessage && <span className="text-xs text-slate-500">{verifyMessage}</span>}
+              </div>
             </div>
           </div>
         )}
@@ -297,27 +383,27 @@ const SalesContractEntry: React.FC = () => {
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
                   placeholder="输入自定义金额"
-                  disabled={Boolean(matchedPayment)}
+                  disabled={selectedPayments.length > 0}
                   className="flex-grow border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 text-xl font-bold disabled:bg-slate-100 disabled:text-slate-400"
                 />
                 <select 
                   className="border-slate-300 rounded-lg px-4 py-2"
                   onChange={(e) => setAmount(Number(e.target.value))}
                   value={amount}
-                  disabled={Boolean(matchedPayment)}
+                  disabled={selectedPayments.length > 0}
                 >
                   <option value={0}>选择标准金额</option>
                   {STANDARD_AMOUNTS.map(a => <option key={a} value={a}>￥{a.toLocaleString()}</option>)}
                 </select>
               </div>
-              {matchedPayment && (
+              {selectedPayments.length > 0 && (
                 <div className="text-xs text-slate-500 mt-2">
-                  已锁定为匹配付款金额：￥{matchedPayment.amount.toLocaleString()}
+                  已锁定为匹配付款金额：￥{selectedPayments.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
                 </div>
               )}
             </div>
 
-            {isBankTransfer && (
+            {formData.mgAccount && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1">匹配到的付款记录</label>
                 {isLoadingMatches && (
@@ -333,9 +419,9 @@ const SalesContractEntry: React.FC = () => {
                   {paymentMatches.map((payment) => (
                     <button
                       key={payment.id}
-                      onClick={() => setMatchedPayment(payment)}
+                      onClick={() => togglePayment(payment)}
                       className={`w-full text-left p-3 rounded-lg border transition ${
-                        matchedPayment?.id === payment.id
+                        selectedPayments.some((item) => item.id === payment.id)
                           ? 'border-blue-500 bg-blue-50'
                           : 'border-slate-200 hover:border-blue-300'
                       }`}

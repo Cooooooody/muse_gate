@@ -69,4 +69,14 @@ public class ContractAcl {
     }
     return contractId;
   }
+
+  @Transactional
+  public void updateStatus(String contractId, String status) {
+    Contract contract = contractMapper.selectById(contractId);
+    if (contract != null) {
+      contract.setStatus(status);
+      contract.setUpdatedAt(OffsetDateTime.now());
+      contractMapper.updateById(contract);
+    }
+  }
 }
