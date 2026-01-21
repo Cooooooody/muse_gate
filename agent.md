@@ -13,6 +13,7 @@
 - 前端目录：`web/`
 - 前端 API 基址：`VITE_API_BASE_URL`（根目录 `.env`）
 - Mock 方式：外围交互由后端 mock（企查查、提醒、异常对账）
+- 数据库相关接口必须直连数据库（如主体、合同、财务），不得使用 mock
 - 数据库维护脚本：根目录 `db/`
   - DDL：`db/mcp.ddl`
   - DML：`db/mcp.dml`

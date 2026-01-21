@@ -9,6 +9,6 @@ describe("performLogout", () => {
     await performLogout({ signOut, onReset });
 
     expect(onReset).toHaveBeenCalledTimes(1);
-    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(signOut).toHaveBeenCalledWith();
   });
 });

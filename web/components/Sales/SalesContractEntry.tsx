@@ -23,6 +23,7 @@ const SalesContractEntry: React.FC = () => {
   const [matchError, setMatchError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -132,8 +133,12 @@ const SalesContractEntry: React.FC = () => {
   };
 
   const handleVerify = async () => {
-    if (!subjectName) return;
+    if (!subjectName) {
+      setVerifyMessage('请先填写主体名称。');
+      return;
+    }
     setVerifyMessage(null);
+    setIsVerifying(true);
     try {
       const result = await verifySubject({
         name: subjectName,
@@ -149,10 +154,16 @@ const SalesContractEntry: React.FC = () => {
       setVerifyMessage('主体信息校验通过（mock）。');
     } catch {
       setVerifyMessage('校验失败，请稍后重试。');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
   const nextStep = async () => {
+    if (step === 2 && selectedPayments.some((payment) => !payment.id)) {
+      setMatchError('匹配记录缺少付款ID，请刷新后重试。');
+      return;
+    }
     if (step === 2 && isBankTransfer && paymentMatches.length > 0 && selectedPayments.length === 0) {
       setMatchError('请选择一笔匹配的付款记录后再继续。');
       return;
@@ -177,6 +188,10 @@ const SalesContractEntry: React.FC = () => {
 
   const handleSubmit = async () => {
     setSubmitError(null);
+    if (selectedPayments.some((payment) => !payment.id)) {
+      setSubmitError('匹配记录缺少付款ID，请刷新后重试。');
+      return;
+    }
     const source = isBankTransfer ? 'bank' : 'client_entry';
     const items = JSON.stringify(['标准API服务']);
     const bonus = JSON.stringify(bonusItems);
@@ -332,13 +347,18 @@ const SalesContractEntry: React.FC = () => {
                   className="w-full border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
                 ></textarea>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={handleVerify}
-                  className="text-sm text-blue-600 hover:underline"
+                  disabled={isVerifying}
+                  className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+                    isVerifying
+                      ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                  }`}
                 >
-                  企查查校验（mock）
+                  {isVerifying ? '校验中...' : '企查查校验'}
                 </button>
                 {verifyMessage && <span className="text-xs text-slate-500">{verifyMessage}</span>}
               </div>
@@ -515,10 +535,20 @@ const SalesContractEntry: React.FC = () => {
             </button>
             <button 
               onClick={step === 3 ? handleSubmit : nextStep}
-              disabled={step === 1 && !subjectName}
-              className={`flex items-center space-x-2 px-8 py-2 rounded-lg font-semibold transition shadow-lg ${step === 1 && !subjectName ? 'bg-slate-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'}`}
+              disabled={(step === 1 && !subjectName) || (step === 2 && isGenerating)}
+              className={`flex items-center space-x-2 px-8 py-2 rounded-lg font-semibold transition shadow-lg ${
+                (step === 1 && !subjectName) || (step === 2 && isGenerating)
+                  ? 'bg-slate-300 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'
+              }`}
             >
-              <span>{step === 3 ? '提交审核' : '继续'}</span>
+              <span>
+                {step === 3
+                  ? '提交审核'
+                  : step === 2 && isGenerating
+                    ? '请等待，正在生成合同'
+                    : '继续'}
+              </span>
               {step === 3 ? <Send size={18} /> : <ChevronRight size={18} />}
             </button>
           </div>

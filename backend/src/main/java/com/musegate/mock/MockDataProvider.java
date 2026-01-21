@@ -16,6 +16,10 @@ public final class MockDataProvider {
   private static final List<SubjectInfoDto> BANK_HISTORY = List.of(
       new SubjectInfoDto(UUID.randomUUID().toString(), "上海世纪出版集团", "9131000012345678X",
           "上海市静安区XX路1号", "bank"),
+      new SubjectInfoDto(UUID.randomUUID().toString(), "宁波银行股份有限公司", "9133020070483980X4",
+          "宁波市鄞州区XX路88号", "bank"),
+      new SubjectInfoDto(UUID.randomUUID().toString(), "宁波银行", "9133020070483980X4",
+          "宁波市鄞州区XX路88号", "bank"),
       new SubjectInfoDto(UUID.randomUUID().toString(), "阿里巴巴(中国)网络技术有限公司", "9133010071256055X",
           "杭州市余杭区XX路88号", "bank"),
       new SubjectInfoDto(UUID.randomUUID().toString(), "腾讯科技(深圳)有限公司", "91440300708461136T",

@@ -32,7 +32,15 @@ const request = async <T>(path: string, options: RequestOptions = {}): Promise<T
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const text = await response.text();
+  if (!text) {
+    return undefined as T;
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(text);
+  }
 };
 
 export const apiGet = <T>(path: string) => request<T>(path);

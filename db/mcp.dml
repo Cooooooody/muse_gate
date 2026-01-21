@@ -58,6 +58,18 @@ select
 from new_user
 on conflict do nothing;
 
+insert into public.subjects (name, tax_id, address, source)
+select '宁波银行股份有限公司', '9133020070483980X4', '宁波市鄞州区XX路88号', 'bank'
+where not exists (
+  select 1 from public.subjects where name = '宁波银行股份有限公司' and source = 'bank'
+);
+
+insert into public.subjects (name, tax_id, address, source)
+select '宁波银行', '9133020070483980X4', '宁波市鄞州区XX路88号', 'bank'
+where not exists (
+  select 1 from public.subjects where name = '宁波银行' and source = 'bank'
+);
+
 with new_user as (
   insert into auth.users (
     instance_id,

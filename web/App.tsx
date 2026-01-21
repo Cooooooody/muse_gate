@@ -22,6 +22,8 @@ import { getProfile, upsertProfile } from './services/profileApi';
 import { getReminders } from './services/reminderApi';
 import { performLogout } from './services/logout';
 import { getSessionSafe } from './services/authBootstrap';
+import { getUserFromAuthResponse } from './services/authUser';
+import { resolveEffectiveRole } from './services/roleResolver';
 import {
   mapEmailToRole,
   mapStoredRoleToUserRole,
@@ -153,10 +155,14 @@ const App: React.FC = () => {
       return;
     }
     setSession(data.session ?? null);
-    if (data.user) {
+    const authUser = getUserFromAuthResponse({
+      user: data.user ?? null,
+      session: data.session ?? null
+    });
+    if (authUser) {
       const nextRole = await resolveRoleForUser(
-        data.user.id,
-        data.user.email ?? null
+        authUser.id,
+        authUser.email ?? null
       );
       setRole(nextRole);
     }
@@ -165,33 +171,38 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     await performLogout({
-      signOut: (options) => supabase.auth.signOut(options),
+      signOut: () => supabase.auth.signOut(),
       onReset: () => {
         setSession(null);
         setRole(null);
         setActiveTab('dashboard');
         setAuthError(null);
+        setAuthLoading(false);
       }
     });
   };
 
-  const isSalesRole = role === UserRole.SALES || role === UserRole.ADMIN;
-  const roleLabel = role ?? UserRole.SALES;
+  const effectiveRole = resolveEffectiveRole(
+    role,
+    session?.user?.email ?? null
+  );
+  const isSalesRole =
+    effectiveRole === UserRole.SALES || effectiveRole === UserRole.ADMIN;
+  const roleLabel = effectiveRole;
 
   const renderContent = () => {
-    const resolvedRole = role ?? UserRole.SALES;
-    switch (role) {
+    switch (effectiveRole) {
       case UserRole.ADMIN:
       case UserRole.SALES:
         if (activeTab === 'contract') return <SalesContractEntry />;
         if (activeTab === 'qrcode') return <PaymentCodeGenerator />;
-        return <DashboardOverview role={resolvedRole} />;
+        return <DashboardOverview role={effectiveRole} />;
       case UserRole.CLIENT:
         return <ClientPortal />;
       case UserRole.FINANCE:
         return <FinancePanel />;
       default:
-        return <DashboardOverview role={resolvedRole} />;
+        return <DashboardOverview role={effectiveRole} />;
     }
   };
 
@@ -254,14 +265,14 @@ const App: React.FC = () => {
             </>
           )}
 
-          {role === UserRole.CLIENT && (
+          {effectiveRole === UserRole.CLIENT && (
             <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
               <History size={20} />
               <span>合同 & 发票</span>
             </button>
           )}
 
-          {role === UserRole.FINANCE && (
+          {effectiveRole === UserRole.FINANCE && (
             <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
               <CreditCard size={20} />
               <span>对账中心</span>

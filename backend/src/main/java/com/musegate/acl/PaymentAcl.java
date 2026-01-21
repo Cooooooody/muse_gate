@@ -1,6 +1,6 @@
 package com.musegate.acl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.musegate.domain.BankTransfer;
 import com.musegate.domain.ContractPayment;
 import com.musegate.domain.QrPayment;
@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -28,10 +29,10 @@ public class PaymentAcl {
       return results;
     }
     List<BankTransfer> transfers = bankTransferMapper.selectList(
-        new QueryWrapper<BankTransfer>().eq("mg_account", mgAccount));
+        new LambdaQueryWrapper<BankTransfer>().eq(BankTransfer::getMgAccount, mgAccount));
     for (BankTransfer transfer : transfers) {
       PaymentMatchDto dto = new PaymentMatchDto();
-      dto.setPaymentId(transfer.getId());
+      dto.setPaymentId(transfer.getId() == null ? null : transfer.getId().toString());
       dto.setPaymentType("bank_transfer");
       dto.setAmount(transfer.getAmount());
       dto.setMgAccount(transfer.getMgAccount());
@@ -39,10 +40,10 @@ public class PaymentAcl {
       results.add(dto);
     }
     List<QrPayment> qrPayments = qrPaymentMapper.selectList(
-        new QueryWrapper<QrPayment>().eq("mg_account", mgAccount));
+        new LambdaQueryWrapper<QrPayment>().eq(QrPayment::getMgAccount, mgAccount));
     for (QrPayment payment : qrPayments) {
       PaymentMatchDto dto = new PaymentMatchDto();
-      dto.setPaymentId(payment.getId());
+      dto.setPaymentId(payment.getId() == null ? null : payment.getId().toString());
       dto.setPaymentType("qr");
       dto.setAmount(payment.getAmount());
       dto.setMgAccount(payment.getMgAccount());
@@ -54,15 +55,15 @@ public class PaymentAcl {
 
   public List<UnmatchedPaymentDto> findUnmatchedPayments() {
     List<UnmatchedPaymentDto> results = new ArrayList<>();
-    List<BankTransfer> transfers = bankTransferMapper.selectList(new QueryWrapper<>());
+    List<BankTransfer> transfers = bankTransferMapper.selectList(new LambdaQueryWrapper<>());
     for (BankTransfer transfer : transfers) {
       boolean matched = contractPaymentMapper.selectCount(
-          new QueryWrapper<ContractPayment>()
-              .eq("payment_type", "bank_transfer")
-              .eq("payment_id", transfer.getId())) > 0;
+          new LambdaQueryWrapper<ContractPayment>()
+              .eq(ContractPayment::getPaymentType, "bank_transfer")
+              .eq(ContractPayment::getPaymentId, transfer.getId())) > 0;
       if (!matched) {
         UnmatchedPaymentDto dto = new UnmatchedPaymentDto();
-        dto.setPaymentId(transfer.getId());
+        dto.setPaymentId(transfer.getId() == null ? null : transfer.getId().toString());
         dto.setPaymentType("bank_transfer");
         dto.setAmount(transfer.getAmount());
         dto.setMgAccount(transfer.getMgAccount());
@@ -70,15 +71,15 @@ public class PaymentAcl {
         results.add(dto);
       }
     }
-    List<QrPayment> qrPayments = qrPaymentMapper.selectList(new QueryWrapper<>());
+    List<QrPayment> qrPayments = qrPaymentMapper.selectList(new LambdaQueryWrapper<>());
     for (QrPayment payment : qrPayments) {
       boolean matched = contractPaymentMapper.selectCount(
-          new QueryWrapper<ContractPayment>()
-              .eq("payment_type", "qr")
-              .eq("payment_id", payment.getId())) > 0;
+          new LambdaQueryWrapper<ContractPayment>()
+              .eq(ContractPayment::getPaymentType, "qr")
+              .eq(ContractPayment::getPaymentId, payment.getId())) > 0;
       if (!matched) {
         UnmatchedPaymentDto dto = new UnmatchedPaymentDto();
-        dto.setPaymentId(payment.getId());
+        dto.setPaymentId(payment.getId() == null ? null : payment.getId().toString());
         dto.setPaymentType("qr");
         dto.setAmount(payment.getAmount());
         dto.setMgAccount(payment.getMgAccount());
@@ -89,17 +90,17 @@ public class PaymentAcl {
     return results;
   }
 
-  public List<ContractPayment> findContractPayments(String contractId) {
+  public List<ContractPayment> findContractPayments(UUID contractId) {
     return contractPaymentMapper.selectList(
-        new QueryWrapper<ContractPayment>().eq("contract_id", contractId));
+        new LambdaQueryWrapper<ContractPayment>().eq(ContractPayment::getContractId, contractId));
   }
 
-  public String findMgAccount(String paymentType, String paymentId) {
+  public String findMgAccount(String paymentType, UUID paymentId) {
     if ("bank_transfer".equals(paymentType)) {
-      BankTransfer transfer = bankTransferMapper.selectById(paymentId);
+      BankTransfer transfer = paymentId == null ? null : bankTransferMapper.selectById(paymentId);
       return transfer == null ? null : transfer.getMgAccount();
     }
-    QrPayment payment = qrPaymentMapper.selectById(paymentId);
+    QrPayment payment = paymentId == null ? null : qrPaymentMapper.selectById(paymentId);
     return payment == null ? null : payment.getMgAccount();
   }
 }

@@ -12,6 +12,6 @@ public class FinanceAcl {
 
   public String createBankTransfer(BankTransfer transfer) {
     bankTransferMapper.insert(transfer);
-    return transfer.getId();
+    return transfer.getId() == null ? null : transfer.getId().toString();
   }
 }

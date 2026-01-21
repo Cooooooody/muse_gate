@@ -6,12 +6,13 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Data
 @TableName("profiles")
 public class Profile {
-  @TableId(type = IdType.ASSIGN_UUID)
-  private String id;
+  @TableId(type = IdType.INPUT)
+  private UUID id;
   private String role;
   private String displayName;
   private String phone;

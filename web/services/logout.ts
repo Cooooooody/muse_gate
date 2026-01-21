@@ -1,12 +1,12 @@
 type LogoutArgs = {
-  signOut: (options?: { scope?: "local" | "global" | "others" }) => Promise<void>;
+  signOut: () => Promise<void>;
   onReset: () => void;
 };
 
 export async function performLogout({ signOut, onReset }: LogoutArgs) {
   onReset();
   try {
-    await signOut({ scope: "local" });
+    await signOut();
   } catch {
     // Ignore sign-out errors; local state reset already performed.
   }

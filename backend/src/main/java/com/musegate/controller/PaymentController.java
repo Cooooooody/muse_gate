@@ -15,7 +15,7 @@ public class PaymentController {
   private final PaymentService paymentService;
 
   @GetMapping("/matches")
-  public List<PaymentMatchDto> matches(@RequestParam String mgAccount) {
+  public List<PaymentMatchDto> matches(@RequestParam("mgAccount") String mgAccount) {
     return paymentService.findMatches(mgAccount);
   }
 
