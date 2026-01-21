@@ -1,23 +1,34 @@
 package com.musegate.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.musegate.acl.ContractAcl;
 import com.musegate.domain.Contract;
 import com.musegate.domain.Subject;
+import com.musegate.dto.ContractPendingDto;
 import com.musegate.dto.ContractResponse;
 import com.musegate.dto.CreateContractRequest;
 import com.musegate.dto.SubjectInput;
+import com.musegate.mapper.ContractMapper;
+import com.musegate.mapper.SubjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ContractService {
   private final ContractAcl contractAcl;
+  private final ContractMapper contractMapper;
+  private final SubjectMapper subjectMapper;
 
   public ContractResponse createContract(CreateContractRequest request) {
     validatePayments(request);
@@ -30,6 +41,7 @@ public class ContractService {
     contract.setMainAccountPhone(request.getMainAccountPhone());
     contract.setItems(request.getItems());
     contract.setBonusItems(request.getBonusItems());
+    contract.setDocumentContent(request.getDocumentContent());
     contract.setStatus("draft");
     contract.setCreatedBy(safeUuid(request.getCreatedBy()));
     contract.setCreatedAt(OffsetDateTime.now());
@@ -66,7 +78,36 @@ public class ContractService {
   }
 
   public void submitContract(String contractId) {
-    contractAcl.updateStatus(contractId, "pending_approval");
+    contractAcl.submitContract(contractId);
+  }
+
+  public List<ContractPendingDto> listPendingContracts() {
+    LambdaQueryWrapper<Contract> wrapper = Wrappers.lambdaQuery();
+    wrapper.apply("status = 'pending_approval'::contract_status")
+        .orderByDesc(Contract::getCreatedAt);
+    List<Contract> contracts = contractMapper.selectList(wrapper);
+    if (contracts == null || contracts.isEmpty()) {
+      return Collections.emptyList();
+    }
+    List<UUID> subjectIds = contracts.stream()
+        .map(Contract::getSubjectId)
+        .filter(id -> id != null)
+        .toList();
+    Map<UUID, String> subjectNameMap = subjectIds.isEmpty()
+        ? Collections.emptyMap()
+        : subjectMapper.selectBatchIds(subjectIds).stream()
+            .collect(Collectors.toMap(Subject::getId, Subject::getName, (a, b) -> a));
+
+    return contracts.stream().map(contract -> {
+      ContractPendingDto dto = new ContractPendingDto();
+      dto.setContractId(contract.getId() == null ? null : contract.getId().toString());
+      dto.setSubjectName(subjectNameMap.get(contract.getSubjectId()));
+      dto.setAmount(contract.getAmount());
+      dto.setStatus(contract.getStatus());
+      dto.setCreatedAt(contract.getCreatedAt() == null ? null : contract.getCreatedAt().toString());
+      dto.setDocumentContent(contract.getDocumentContent());
+      return dto;
+    }).toList();
   }
 
   private Subject buildSubject(SubjectInput input, String subjectId) {

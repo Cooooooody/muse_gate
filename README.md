@@ -26,9 +26,11 @@ npm run dev -- --host
 ## 测试手册
 
 - `docs/manuals/销售端合同录入测试手册.md`
+- `docs/manuals/销售端合同录入测试完成记录.md`
 - `docs/manuals/财务录入与对账测试手册.md`
 - `docs/manuals/提醒机制测试手册.md`
 - `docs/manuals/合同审核与确认测试手册.md`
+- `docs/manuals/合同审核与确认测试完成记录.md`
 - `docs/manuals/主体选择与校验测试手册.md`
 - `docs/manuals/登录与鉴权测试手册.md`
 - `docs/manuals/登录与鉴权测试完成记录.md`

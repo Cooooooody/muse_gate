@@ -17,6 +17,7 @@ import SalesContractEntry from './components/Sales/SalesContractEntry';
 import PaymentCodeGenerator from './components/Sales/PaymentCodeGenerator';
 import ClientPortal from './components/Client/ClientPortal';
 import FinancePanel from './components/Finance/FinancePanel';
+import ContractReview from './components/Admin/ContractReview';
 import LoginPage from './components/Auth/LoginPage';
 import { getProfile, upsertProfile } from './services/profileApi';
 import { getReminders } from './services/reminderApi';
@@ -188,14 +189,20 @@ const App: React.FC = () => {
   );
   const isSalesRole =
     effectiveRole === UserRole.SALES || effectiveRole === UserRole.ADMIN;
+  const isReviewRole =
+    effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPERVISOR;
   const roleLabel = effectiveRole;
 
   const renderContent = () => {
     switch (effectiveRole) {
       case UserRole.ADMIN:
       case UserRole.SALES:
+        if (activeTab === 'review') return <ContractReview />;
         if (activeTab === 'contract') return <SalesContractEntry />;
         if (activeTab === 'qrcode') return <PaymentCodeGenerator />;
+        return <DashboardOverview role={effectiveRole} />;
+      case UserRole.SUPERVISOR:
+        if (activeTab === 'review') return <ContractReview />;
         return <DashboardOverview role={effectiveRole} />;
       case UserRole.CLIENT:
         return <ClientPortal />;
@@ -263,6 +270,16 @@ const App: React.FC = () => {
                 <span>支付码生成</span>
               </button>
             </>
+          )}
+
+          {isReviewRole && (
+            <button 
+              onClick={() => setActiveTab('review')}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition ${activeTab === 'review' ? 'bg-blue-600' : 'hover:bg-slate-800'}`}
+            >
+              <ShieldCheck size={20} />
+              <span>合同审核</span>
+            </button>
           )}
 
           {effectiveRole === UserRole.CLIENT && (

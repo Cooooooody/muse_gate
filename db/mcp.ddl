@@ -49,10 +49,13 @@ create table if not exists contracts (
   main_account_phone text,
   items jsonb not null default '[]'::jsonb,
   bonus_items jsonb not null default '[]'::jsonb,
+  document_content text,
   status contract_status not null default 'draft',
   created_by uuid references profiles(id),
   approved_by uuid references profiles(id),
   created_at timestamptz not null default now(),
+  submitted_at timestamptz,
+  approved_at timestamptz,
   updated_at timestamptz not null default now()
 );
 

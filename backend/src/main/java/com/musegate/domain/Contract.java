@@ -23,10 +23,13 @@ public class Contract {
   private String mainAccountPhone;
   private String items;
   private String bonusItems;
+  private String documentContent;
   @TableField(typeHandler = PostgresEnumTypeHandler.class)
   private String status;
   private UUID createdBy;
   private UUID approvedBy;
   private OffsetDateTime createdAt;
+  private OffsetDateTime submittedAt;
+  private OffsetDateTime approvedAt;
   private OffsetDateTime updatedAt;
 }

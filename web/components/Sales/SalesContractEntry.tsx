@@ -219,6 +219,10 @@ const SalesContractEntry: React.FC = () => {
       setSubmitError('匹配记录缺少付款ID，请刷新后重试。');
       return;
     }
+    if (!previewContent || !previewContent.trim()) {
+      setSubmitError('请先生成合同预览后再提交。');
+      return;
+    }
     const source = isBankTransfer ? 'bank' : 'client_entry';
     const items = JSON.stringify(['标准API服务']);
     const bonus = JSON.stringify(bonusItems);
@@ -238,6 +242,7 @@ const SalesContractEntry: React.FC = () => {
         mainAccountPhone: formData.mgPhone || undefined,
         items,
         bonusItems: bonus,
+        documentContent: previewContent,
         createdBy: formData.mgAccount || undefined,
         payments: selectedPayments.length > 0
           ? selectedPayments.map((payment) => ({

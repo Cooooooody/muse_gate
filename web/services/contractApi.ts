@@ -1,4 +1,4 @@
-import { apiPost } from './api';
+import { apiGet, apiPost } from './api';
 
 export type PaymentMatchInput = {
   paymentId: string;
@@ -23,6 +23,7 @@ export type CreateContractRequest = {
   mainAccountPhone?: string;
   items?: string;
   bonusItems?: string;
+  documentContent?: string;
   createdBy?: string;
   payments?: PaymentMatchInput[];
 };
@@ -31,6 +32,15 @@ export type ContractResponse = {
   contractId: string;
   subjectId?: string;
   status: string;
+};
+
+export type PendingContractDto = {
+  contractId: string;
+  subjectName?: string;
+  amount: number;
+  status: string;
+  createdAt?: string;
+  documentContent?: string;
 };
 
 export type ConfirmContractResponse = {
@@ -46,3 +56,6 @@ export const confirmContract = (contractId: string) =>
 
 export const submitContract = (contractId: string) =>
   apiPost<void>(`/api/contracts/${contractId}/submit`);
+
+export const getPendingContracts = () =>
+  apiGet<PendingContractDto[]>('/api/contracts/pending');

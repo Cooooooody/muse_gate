@@ -15,6 +15,7 @@ public class CreateContractRequest {
   private String mainAccountPhone;
   private String items;
   private String bonusItems;
+  private String documentContent;
   private String createdBy;
   private List<PaymentMatchInput> payments;
 }

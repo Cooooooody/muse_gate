@@ -75,10 +75,23 @@ public class ContractAcl {
     Contract contract = contractUuid == null ? null : contractMapper.selectById(contractUuid);
     if (contract != null) {
       contract.setStatus("approved");
+      contract.setApprovedAt(OffsetDateTime.now());
       contract.setUpdatedAt(OffsetDateTime.now());
       contractMapper.updateById(contract);
     }
     return contractId;
+  }
+
+  @Transactional
+  public void submitContract(String contractId) {
+    UUID contractUuid = safeUuid(contractId);
+    Contract contract = contractUuid == null ? null : contractMapper.selectById(contractUuid);
+    if (contract != null) {
+      contract.setStatus("pending_approval");
+      contract.setSubmittedAt(OffsetDateTime.now());
+      contract.setUpdatedAt(OffsetDateTime.now());
+      contractMapper.updateById(contract);
+    }
   }
 
   @Transactional
