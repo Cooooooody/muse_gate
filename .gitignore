@@ -14,6 +14,7 @@ dist-ssr
 .env
 backend/target
 web/.vite
+.worktrees
 
 # Editor directories and files
 .vscode/*
