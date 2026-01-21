@@ -10,6 +10,8 @@
 
 - Maven 路径：`~/dev`（使用该目录下的 `mvn`）
 - Maven 仓库：阿里云仓库（项目内 `backend/pom.xml` 已配置）
+- 前端目录：`web/`
+- 前端 API 基址：`VITE_API_BASE_URL`（根目录 `.env`）
 
 ## 基础业务要求
 
