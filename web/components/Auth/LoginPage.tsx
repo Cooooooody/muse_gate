@@ -27,7 +27,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, error, loading }) => {
       <div className="w-full max-w-4xl grid gap-8 md:grid-cols-[1.1fr_1fr]">
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
           <div className="mb-6">
-            <div className="text-sm font-semibold text-slate-400 uppercase tracking-widest">MuseGate</div>
+            <div className="text-sm font-semibold text-slate-400 uppercase tracking-widest">霖润智能 MuseGate</div>
             <h1 className="text-3xl font-bold text-slate-900 mt-2">登录系统</h1>
             <p className="text-slate-500 mt-2">请输入账号密码以继续访问合同与财务功能。</p>
           </div>

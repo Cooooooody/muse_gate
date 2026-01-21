@@ -15,7 +15,7 @@ const ClientPortal: React.FC = () => {
       {/* Header Info */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">欢迎回来，MuseGate 用户</h1>
+          <h1 className="text-2xl font-bold text-slate-900">欢迎回来，霖润智能 MuseGate 用户</h1>
           <p className="text-slate-500">管理您的合同主体、查看消费记录及开具发票</p>
         </div>
         <div className="flex space-x-3">
@@ -52,7 +52,7 @@ const ClientPortal: React.FC = () => {
                         <FileText size={24} className="text-slate-500" />
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900">MuseGate 服务订购合同 (Q{i})</div>
+                        <div className="font-bold text-slate-900">霖润智能 MuseGate 服务订购合同 (Q{i})</div>
                         <div className="text-sm text-slate-500">上海未来创意设计有限公司 · ￥{i * 10000}.00</div>
                       </div>
                     </div>

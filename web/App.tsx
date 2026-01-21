@@ -232,7 +232,7 @@ const App: React.FC = () => {
           <div className="bg-blue-600 p-2 rounded-lg">
             <ShieldCheck size={24} />
           </div>
-          <span className="text-xl font-bold tracking-tight">MuseGate</span>
+          <span className="text-xl font-bold tracking-tight">霖润智能 MuseGate</span>
         </div>
 
         <nav className="flex-grow p-4 space-y-2">

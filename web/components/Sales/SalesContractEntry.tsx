@@ -26,12 +26,13 @@ const SalesContractEntry: React.FC = () => {
   const [isVerifying, setIsVerifying] = useState(false);
 
   // Form State
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     mgAccount: '',
     mgPhone: '',
     address: '',
     taxId: '',
-  });
+  };
+  const [formData, setFormData] = useState(initialFormData);
 
   const [bankHistory, setBankHistory] = useState<Subject[]>([]);
   const [clientSubjects, setClientSubjects] = useState<Subject[]>([]);
@@ -39,14 +40,23 @@ const SalesContractEntry: React.FC = () => {
   useEffect(() => {
     getClientSubjects()
       .then((subjects) => {
-        setClientSubjects(
-          subjects.map((item) => ({
+        const mapped = subjects.map((item) => ({
             id: item.id,
             name: item.name,
             taxId: item.taxId,
             address: item.address,
             source: 'CLIENT_ENTRY',
-          }))
+          }));
+        const seen = new Set<string>();
+        setClientSubjects(
+          mapped.filter((item) => {
+            const key = item.name.trim();
+            if (seen.has(key)) {
+              return false;
+            }
+            seen.add(key);
+            return true;
+          })
         );
       })
       .catch(() => {
@@ -61,14 +71,23 @@ const SalesContractEntry: React.FC = () => {
     }
     getBankHistory(subjectName.trim() ? subjectName.trim() : undefined)
       .then((subjects) => {
-        setBankHistory(
-          subjects.map((item) => ({
+        const mapped = subjects.map((item) => ({
             id: item.id,
             name: item.name,
             taxId: item.taxId,
             address: item.address,
             source: 'BANK',
-          }))
+          }));
+        const seen = new Set<string>();
+        setBankHistory(
+          mapped.filter((item) => {
+            const key = item.name.trim();
+            if (seen.has(key)) {
+              return false;
+            }
+            seen.add(key);
+            return true;
+          })
         );
       })
       .catch(() => setBankHistory([]));
@@ -223,6 +242,20 @@ const SalesContractEntry: React.FC = () => {
       });
       await submitContract(response.contractId);
       alert(`合同已提交审核，编号：${response.contractId}`);
+      setStep(1);
+      setIsBankTransfer(false);
+      setSubjectName('');
+      setIsManualInput(false);
+      setSelectedPayments([]);
+      setAmount(0);
+      setBonusItems([]);
+      setPreviewContent('');
+      setIsGenerating(false);
+      setPaymentMatches([]);
+      setMatchError(null);
+      setVerifyMessage(null);
+      setSubmitError(null);
+      setFormData(initialFormData);
     } catch (error) {
       setSubmitError('提交失败，请检查网络或稍后重试。');
     }
@@ -268,7 +301,7 @@ const SalesContractEntry: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">MuseGate 主账号名称</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">霖润智能 MuseGate 主账号名称</label>
                   <input 
                     type="text" 
                     value={formData.mgAccount}
@@ -497,7 +530,7 @@ const SalesContractEntry: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold flex items-center space-x-2">
                 <Eye className="text-blue-600" size={20} />
-                <span>合同预览生成中...</span>
+                <span>{isGenerating ? '合同预览生成中...' : '请查阅合同'}</span>
               </h3>
               <div className="flex space-x-2">
                 <button className="px-3 py-1 text-xs bg-slate-100 rounded hover:bg-slate-200">打印</button>

@@ -13,7 +13,7 @@ export const generateContractPreview = async (contractData: any) => {
     return "未配置 Gemini API Key，无法生成合同预览。请在环境变量中设置 `GEMINI_API_KEY` 后重试。";
   }
   const prompt = `
-    请根据以下信息生成一个专业的 MuseGate 服务合同预览。
+    请根据以下信息生成一个专业的 霖润智能 MuseGate 服务合同预览。
     合同主体: ${contractData.subjectName}
     金额: ${contractData.amount}元
     主账号: ${contractData.mainAccountName} (${contractData.mainAccountPhone})
