@@ -1,36 +1,117 @@
 
-import React, { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  CreditCard, 
-  User, 
-  ShieldCheck, 
-  LayoutDashboard, 
-  History, 
+import React, { useEffect, useState } from 'react';
+import {
+  FileText,
+  CreditCard,
+  User,
+  ShieldCheck,
+  LayoutDashboard,
+  History,
   QrCode,
   Bell,
-  Settings,
   LogOut,
-  ChevronRight,
-  Plus
+  ChevronRight
 } from 'lucide-react';
+import type { Session } from '@supabase/supabase-js';
 import SalesContractEntry from './components/Sales/SalesContractEntry';
 import PaymentCodeGenerator from './components/Sales/PaymentCodeGenerator';
 import ClientPortal from './components/Client/ClientPortal';
 import FinancePanel from './components/Finance/FinancePanel';
-import { UserRole, PaymentRecord, PaymentType } from './types';
+import LoginPage from './components/Auth/LoginPage';
+import { getProfile, upsertProfile } from './services/profileApi';
 import { getReminders } from './services/reminderApi';
+import { mapEmailToRole } from './services/roleMapper';
+import { supabase } from './services/supabaseClient';
+import { UserRole } from './types';
+
+export function __test_role(email: string) {
+  return mapEmailToRole(email);
+}
 
 const App: React.FC = () => {
-  const [role, setRole] = useState<UserRole>(UserRole.SALES);
+  const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
+  const [initializing, setInitializing] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [showReminder, setShowReminder] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [reminderAccount, setReminderAccount] = useState<string | null>(null);
   const [reminderAmount, setReminderAmount] = useState<string | null>(null);
 
+  const resolveRoleForUser = async (userId: string, email: string | null) => {
+    const fallbackRole = mapEmailToRole(email ?? '');
+    const { data, error } = await getProfile(userId);
+    if (error) {
+      return fallbackRole;
+    }
+    if (data) {
+      return data.role;
+    }
+
+    const { error: upsertError } = await upsertProfile({
+      id: userId,
+      email: email ?? '',
+      role: fallbackRole
+    });
+
+    if (upsertError) {
+      return fallbackRole;
+    }
+
+    return fallbackRole;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const initSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (cancelled) {
+        return;
+      }
+      setSession(data.session ?? null);
+      if (data.session?.user) {
+        const nextRole = await resolveRoleForUser(
+          data.session.user.id,
+          data.session.user.email ?? null
+        );
+        if (!cancelled) {
+          setRole(nextRole);
+        }
+      } else {
+        setRole(null);
+      }
+      setInitializing(false);
+    };
+
+    initSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, nextSession) => {
+        setSession(nextSession);
+        if (nextSession?.user) {
+          const nextRole = await resolveRoleForUser(
+            nextSession.user.id,
+            nextSession.user.email ?? null
+          );
+          setRole(nextRole);
+        } else {
+          setRole(null);
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   // Simulated logic for daily sales reminder
   useEffect(() => {
-    if (role === UserRole.SALES) {
+    const isSalesRole = role === UserRole.SALES || role === UserRole.ADMIN;
+    if (isSalesRole) {
       getReminders()
         .then((list) => {
           if (list.length > 0) {
@@ -50,20 +131,72 @@ const App: React.FC = () => {
     }
   }, [role]);
 
+  const handleLogin = async (email: string, password: string) => {
+    setAuthError(null);
+    setAuthLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (error) {
+      setAuthError(error.message || '登录失败，请检查账号密码');
+      setAuthLoading(false);
+      return;
+    }
+    setSession(data.session ?? null);
+    if (data.user) {
+      const nextRole = await resolveRoleForUser(
+        data.user.id,
+        data.user.email ?? null
+      );
+      setRole(nextRole);
+    }
+    setAuthLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setRole(null);
+  };
+
+  const isSalesRole = role === UserRole.SALES || role === UserRole.ADMIN;
+  const roleLabel = role ?? UserRole.SALES;
+
   const renderContent = () => {
+    const resolvedRole = role ?? UserRole.SALES;
     switch (role) {
+      case UserRole.ADMIN:
       case UserRole.SALES:
         if (activeTab === 'contract') return <SalesContractEntry />;
         if (activeTab === 'qrcode') return <PaymentCodeGenerator />;
-        return <DashboardOverview role={role} />;
+        return <DashboardOverview role={resolvedRole} />;
       case UserRole.CLIENT:
         return <ClientPortal />;
       case UserRole.FINANCE:
         return <FinancePanel />;
       default:
-        return <DashboardOverview role={role} />;
+        return <DashboardOverview role={resolvedRole} />;
     }
   };
+
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-500">
+        正在加载...
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        error={authError}
+        loading={authLoading}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -87,7 +220,7 @@ const App: React.FC = () => {
             <span>工作台</span>
           </button>
 
-          {role === UserRole.SALES && (
+          {isSalesRole && (
             <>
               <button 
                 onClick={() => setActiveTab('contract')}
@@ -120,24 +253,13 @@ const App: React.FC = () => {
             </button>
           )}
         </nav>
-
-        <div className="p-4 border-t border-slate-800">
-          <div className="text-xs font-semibold text-slate-500 uppercase mb-4 ml-2">角色切换 (测试用)</div>
-          <select 
-            value={role}
-            onChange={(e) => setRole(e.target.value as UserRole)}
-            className="w-full bg-slate-800 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500"
-          >
-            {Object.values(UserRole).map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
       </aside>
 
       {/* Main Area */}
       <main className="flex-grow flex flex-col min-w-0 bg-slate-50 overflow-auto">
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10">
-          <h2 className="text-lg font-semibold text-slate-800">{role}面板</h2>
+          <h2 className="text-lg font-semibold text-slate-800">{roleLabel}面板</h2>
           <div className="flex items-center space-x-4">
             <button className="relative p-2 text-slate-500 hover:bg-slate-100 rounded-full transition">
               <Bell size={20} />
@@ -145,13 +267,20 @@ const App: React.FC = () => {
             </button>
             <div className="flex items-center space-x-3 border-l pl-4 border-slate-200">
               <div className="text-right">
-                <div className="text-sm font-medium">管理员</div>
-                <div className="text-xs text-slate-400">{role}</div>
+                <div className="text-sm font-medium">{session.user.email ?? '已登录用户'}</div>
+                <div className="text-xs text-slate-400">{roleLabel}</div>
               </div>
               <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center">
                 <User size={20} className="text-slate-500" />
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-sm text-slate-600 hover:text-slate-900"
+            >
+              <LogOut size={16} />
+              <span>退出</span>
+            </button>
           </div>
         </header>
 
