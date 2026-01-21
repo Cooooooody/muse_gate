@@ -55,7 +55,14 @@ export interface Invoice {
   date: string;
 }
 
+export interface Profile {
+  id: string;
+  email: string;
+  role: UserRole;
+}
+
 export enum UserRole {
+  ADMIN = '管理员',
   SALES = '销售',
   SUPERVISOR = '主管',
   FINANCE = '财务',
