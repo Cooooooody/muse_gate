@@ -1,0 +1,5 @@
+{
+  "name": "MuseGate Contract & Payment Management System",
+  "description": "A comprehensive enterprise-grade solution for sales contract entry, payment reconciliation, client subject management, and automated invoicing. Features include real-time bank transfer matching, QR code payment generation, and intelligent audit workflows.",
+  "requestFramePermissions": []
+}
