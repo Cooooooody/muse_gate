@@ -31,6 +31,12 @@ npm run dev -- --host
 - `docs/manuals/合同审核与确认测试手册.md`
 - `docs/manuals/主体选择与校验测试手册.md`
 
+## 手动验证
+
+- Login with admin@musegate.local / admin and confirm role badge
+- Login with finance@musegate.local / finance and confirm Finance panel accessible
+- Logout and ensure app returns to login page
+
 ## 需求澄清
 
 一、销售端合同录入功能
