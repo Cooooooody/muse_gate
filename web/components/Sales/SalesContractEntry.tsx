@@ -4,6 +4,8 @@ import { Search, Info, CheckCircle2, AlertCircle, FileText, Send, Eye } from 'lu
 import { PaymentType, Subject, PaymentRecord, ContractStatus } from '../../types';
 import { STANDARD_AMOUNTS, MOCK_PACKAGES } from '../../constants';
 import { generateContractPreview } from '../../services/geminiService';
+import { createContract } from '../../services/contractApi';
+import { getPaymentMatches } from '../../services/paymentApi';
 
 const SalesContractEntry: React.FC = () => {
   const [step, setStep] = useState(1);
@@ -15,6 +17,10 @@ const SalesContractEntry: React.FC = () => {
   const [bonusItems, setBonusItems] = useState<string[]>([]);
   const [previewContent, setPreviewContent] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [paymentMatches, setPaymentMatches] = useState<PaymentRecord[]>([]);
+  const [isLoadingMatches, setIsLoadingMatches] = useState(false);
+  const [matchError, setMatchError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -34,12 +40,47 @@ const SalesContractEntry: React.FC = () => {
     { id: '3', name: '个人主体A', source: 'CLIENT_ENTRY' },
   ]);
 
+  useEffect(() => {
+    if (!isBankTransfer || !formData.mgAccount) {
+      setPaymentMatches([]);
+      setMatchError(null);
+      return;
+    }
+
+    setIsLoadingMatches(true);
+    getPaymentMatches(formData.mgAccount)
+      .then((matches) => {
+        const mapped = matches.map((item) => ({
+          id: item.paymentId,
+          type: item.paymentType === 'bank_transfer' ? PaymentType.BANK_TRANSFER : PaymentType.QR,
+          amount: item.amount,
+          senderName: item.mgAccount || item.paymentId,
+          date: item.occurredAt || '',
+          isMatched: false,
+          mgAccount: item.mgAccount,
+        }));
+        setPaymentMatches(mapped);
+        setMatchError(null);
+      })
+      .catch(() => {
+        setMatchError('无法加载可匹配的付款记录，请稍后重试。');
+      })
+      .finally(() => {
+        setIsLoadingMatches(false);
+      });
+  }, [isBankTransfer, formData.mgAccount]);
+
   const handleSubjectSelect = (name: string) => {
     setSubjectName(name);
     setIsManualInput(false);
   };
 
   const nextStep = async () => {
+    if (step === 2 && isBankTransfer && paymentMatches.length > 0 && !matchedPayment) {
+      setMatchError('请选择一笔匹配的付款记录后再继续。');
+      return;
+    }
+
     if (step === 2) {
       setIsGenerating(true);
       const content = await generateContractPreview({
@@ -55,6 +96,45 @@ const SalesContractEntry: React.FC = () => {
       setIsGenerating(false);
     }
     setStep(s => s + 1);
+  };
+
+  const handleSubmit = async () => {
+    setSubmitError(null);
+    const source = isBankTransfer ? 'bank' : 'client_entry';
+    const items = JSON.stringify(['标准API服务']);
+    const bonus = JSON.stringify(bonusItems);
+
+    try {
+      const response = await createContract({
+        subject: {
+          name: subjectName,
+          taxId: formData.taxId || undefined,
+          address: formData.address || undefined,
+          source,
+          createdBy: formData.mgAccount || undefined,
+        },
+        amount,
+        address: formData.address || undefined,
+        mainAccountName: formData.mgAccount || undefined,
+        mainAccountPhone: formData.mgPhone || undefined,
+        items,
+        bonusItems: bonus,
+        createdBy: formData.mgAccount || undefined,
+        payments: matchedPayment
+          ? [
+              {
+                paymentId: matchedPayment.id,
+                paymentType:
+                  matchedPayment.type === PaymentType.BANK_TRANSFER ? 'bank_transfer' : 'qr',
+                amount: matchedPayment.amount,
+              },
+            ]
+          : undefined,
+      });
+      alert(`合同已提交，编号：${response.contractId}`);
+    } catch (error) {
+      setSubmitError('提交失败，请检查网络或稍后重试。');
+    }
   };
 
   return (
@@ -217,18 +297,60 @@ const SalesContractEntry: React.FC = () => {
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value))}
                   placeholder="输入自定义金额"
-                  className="flex-grow border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 text-xl font-bold"
+                  disabled={Boolean(matchedPayment)}
+                  className="flex-grow border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 text-xl font-bold disabled:bg-slate-100 disabled:text-slate-400"
                 />
                 <select 
                   className="border-slate-300 rounded-lg px-4 py-2"
                   onChange={(e) => setAmount(Number(e.target.value))}
                   value={amount}
+                  disabled={Boolean(matchedPayment)}
                 >
                   <option value={0}>选择标准金额</option>
                   {STANDARD_AMOUNTS.map(a => <option key={a} value={a}>￥{a.toLocaleString()}</option>)}
                 </select>
               </div>
+              {matchedPayment && (
+                <div className="text-xs text-slate-500 mt-2">
+                  已锁定为匹配付款金额：￥{matchedPayment.amount.toLocaleString()}
+                </div>
+              )}
             </div>
+
+            {isBankTransfer && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">匹配到的付款记录</label>
+                {isLoadingMatches && (
+                  <div className="text-sm text-slate-500">正在加载付款记录...</div>
+                )}
+                {matchError && (
+                  <div className="text-sm text-red-500">{matchError}</div>
+                )}
+                {!isLoadingMatches && !matchError && paymentMatches.length === 0 && (
+                  <div className="text-sm text-amber-600">未找到可匹配的付款记录。</div>
+                )}
+                <div className="space-y-2">
+                  {paymentMatches.map((payment) => (
+                    <button
+                      key={payment.id}
+                      onClick={() => setMatchedPayment(payment)}
+                      className={`w-full text-left p-3 rounded-lg border transition ${
+                        matchedPayment?.id === payment.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold text-slate-800">
+                        ￥{payment.amount.toLocaleString()} · {payment.type === PaymentType.BANK_TRANSFER ? '银行转账' : '扫码支付'}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {payment.date || '日期未知'} · {payment.mgAccount || payment.senderName}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">额外赠送内容 (可改)</label>
@@ -306,7 +428,7 @@ const SalesContractEntry: React.FC = () => {
               存为草稿
             </button>
             <button 
-              onClick={step === 3 ? () => alert("已提交给主管审核") : nextStep}
+              onClick={step === 3 ? handleSubmit : nextStep}
               disabled={step === 1 && !subjectName}
               className={`flex items-center space-x-2 px-8 py-2 rounded-lg font-semibold transition shadow-lg ${step === 1 && !subjectName ? 'bg-slate-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-200'}`}
             >
@@ -316,6 +438,9 @@ const SalesContractEntry: React.FC = () => {
           </div>
         </div>
       </div>
+      {submitError && (
+        <div className="mt-4 text-sm text-red-500 text-center">{submitError}</div>
+      )}
     </div>
   );
 };

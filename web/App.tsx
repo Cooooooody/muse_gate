@@ -19,18 +19,30 @@ import PaymentCodeGenerator from './components/Sales/PaymentCodeGenerator';
 import ClientPortal from './components/Client/ClientPortal';
 import FinancePanel from './components/Finance/FinancePanel';
 import { UserRole, PaymentRecord, PaymentType } from './types';
+import { getUnmatchedPayments } from './services/paymentApi';
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole>(UserRole.SALES);
   const [showReminder, setShowReminder] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [reminderAccount, setReminderAccount] = useState<string | null>(null);
 
   // Simulated logic for daily sales reminder
   useEffect(() => {
     if (role === UserRole.SALES) {
-      // Mock check for unmatched payments
-      const hasUnmatched = true; 
-      if (hasUnmatched) setShowReminder(true);
+      getUnmatchedPayments()
+        .then((list) => {
+          if (list.length > 0) {
+            setReminderAccount(list[0].mgAccount || list[0].paymentId);
+            setShowReminder(true);
+          } else {
+            setReminderAccount(null);
+            setShowReminder(false);
+          }
+        })
+        .catch(() => {
+          setReminderAccount(null);
+        });
     }
   }, [role]);
 
@@ -154,7 +166,7 @@ const App: React.FC = () => {
             </div>
             <h3 className="text-2xl font-bold text-center text-slate-900 mb-2">待录入合同提醒</h3>
             <p className="text-slate-500 text-center mb-8">
-              系统检测到您有名下客户（MG账号: MG-9527）已完成公对公转账 10,000.00 元。请尽快补充合同信息以完成后续流程。
+              系统检测到您有名下客户（MG账号: {reminderAccount || '未知'}）已完成公对公转账。请尽快补充合同信息以完成后续流程。
             </p>
             <div className="space-y-3">
               <button 

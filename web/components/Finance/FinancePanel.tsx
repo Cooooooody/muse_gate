@@ -1,33 +1,69 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CreditCard, ArrowRightLeft, CheckCircle2, AlertCircle, Search, Plus } from 'lucide-react';
 import { PaymentRecord, PaymentType } from '../../types';
+import { createBankTransfer } from '../../services/financeApi';
+import { getUnmatchedPayments } from '../../services/paymentApi';
 
 const FinancePanel: React.FC = () => {
-  const [payments, setPayments] = useState<PaymentRecord[]>([
-    { id: '1', type: PaymentType.BANK_TRANSFER, amount: 10000, senderName: '上海未来创意设计有限公司', date: '2023-11-01', isMatched: false },
-    { id: '2', type: PaymentType.BANK_TRANSFER, amount: 20000, senderName: '字节跳动', date: '2023-11-01', isMatched: true },
-    { id: '3', type: PaymentType.QR, amount: 3000, senderName: '微信支付', date: '2023-11-01', isMatched: true },
-  ]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [newPayment, setNewPayment] = useState({
     senderName: '',
     amount: '',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
+    mgAccount: '',
   });
 
-  const handleAddPayment = () => {
+  const fetchUnmatched = () => {
+    setIsLoading(true);
+    getUnmatchedPayments()
+      .then((list) => {
+        const mapped = list.map((item) => ({
+          id: item.paymentId,
+          type: item.paymentType === 'bank_transfer' ? PaymentType.BANK_TRANSFER : PaymentType.QR,
+          amount: item.amount,
+          senderName: item.mgAccount || item.paymentId,
+          date: item.occurredAt || '',
+          isMatched: false,
+          mgAccount: item.mgAccount,
+        }));
+        setPayments(mapped);
+        setErrorMessage(null);
+      })
+      .catch(() => {
+        setErrorMessage('无法加载对账数据，请稍后重试。');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchUnmatched();
+  }, []);
+
+  const handleAddPayment = async () => {
     if (!newPayment.senderName || !newPayment.amount) return;
-    const payment: PaymentRecord = {
-      id: Date.now().toString(),
-      type: PaymentType.BANK_TRANSFER,
-      amount: Number(newPayment.amount),
-      senderName: newPayment.senderName,
-      date: newPayment.date,
-      isMatched: false
-    };
-    setPayments([payment, ...payments]);
-    setNewPayment({ senderName: '', amount: '', date: new Date().toISOString().split('T')[0] });
+    try {
+      await createBankTransfer({
+        senderName: newPayment.senderName,
+        amount: Number(newPayment.amount),
+        receivedAt: newPayment.date,
+        mgAccount: newPayment.mgAccount || undefined,
+      });
+      setNewPayment({
+        senderName: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        mgAccount: '',
+      });
+      fetchUnmatched();
+    } catch (error) {
+      setErrorMessage('录入失败，请稍后重试。');
+    }
   };
 
   return (
@@ -70,6 +106,16 @@ const FinancePanel: React.FC = () => {
                   className="w-full border-slate-200 rounded-xl px-4 py-3"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">MG账号 (可选)</label>
+                <input 
+                  type="text" 
+                  value={newPayment.mgAccount}
+                  onChange={(e) => setNewPayment({...newPayment, mgAccount: e.target.value})}
+                  className="w-full border-slate-200 rounded-xl px-4 py-3"
+                  placeholder="用于匹配客户账号"
+                />
+              </div>
               <button 
                 onClick={handleAddPayment}
                 className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition shadow-lg"
@@ -92,6 +138,15 @@ const FinancePanel: React.FC = () => {
             </div>
             
             <div className="divide-y divide-slate-100">
+              {isLoading && (
+                <div className="p-6 text-sm text-slate-500">正在加载对账数据...</div>
+              )}
+              {errorMessage && (
+                <div className="p-6 text-sm text-red-500">{errorMessage}</div>
+              )}
+              {!isLoading && !errorMessage && payments.length === 0 && (
+                <div className="p-6 text-sm text-slate-500">暂无未匹配记录。</div>
+              )}
               {payments.map(p => (
                 <div key={p.id} className="p-6 flex items-center justify-between hover:bg-slate-50 transition">
                   <div className="flex items-center space-x-4">
