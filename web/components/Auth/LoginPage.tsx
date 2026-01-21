@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
 const TEST_ACCOUNTS = [
-  { email: 'admin@musegate.local', password: 'admin', role: '管理员' },
-  { email: 'sales@musegate.local', password: 'sales', role: '销售' },
-  { email: 'finance@musegate.local', password: 'finance', role: '财务' },
-  { email: 'client@musegate.local', password: 'client', role: '客户' }
+  { email: 'admin@test.com', password: '123456', role: '管理员' },
+  { email: 'sales@test.com', password: '123456', role: '销售' },
+  { email: 'finance@test.com', password: '123456', role: '财务' },
+  { email: 'client@test.com', password: '123456', role: '客户' }
 ];
 
 type LoginPageProps = {

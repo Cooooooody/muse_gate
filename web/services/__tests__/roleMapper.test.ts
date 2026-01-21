@@ -4,9 +4,9 @@ import { UserRole } from "../../types";
 
 describe("mapEmailToRole", () => {
   it("maps known local emails", () => {
-    expect(mapEmailToRole("admin@musegate.local")).toBe(UserRole.ADMIN);
-    expect(mapEmailToRole("sales@musegate.local")).toBe(UserRole.SALES);
-    expect(mapEmailToRole("finance@musegate.local")).toBe(UserRole.FINANCE);
-    expect(mapEmailToRole("client@musegate.local")).toBe(UserRole.CLIENT);
+    expect(mapEmailToRole("admin@test.com")).toBe(UserRole.ADMIN);
+    expect(mapEmailToRole("sales@test.com")).toBe(UserRole.SALES);
+    expect(mapEmailToRole("finance@test.com")).toBe(UserRole.FINANCE);
+    expect(mapEmailToRole("client@test.com")).toBe(UserRole.CLIENT);
   });
 });

@@ -4,6 +4,6 @@ import { UserRole } from "./types";
 
 describe("App role mapping", () => {
   it("maps admin email", () => {
-    expect(__test_role("admin@musegate.local")).toBe(UserRole.ADMIN);
+    expect(__test_role("admin@test.com")).toBe(UserRole.ADMIN);
   });
 });

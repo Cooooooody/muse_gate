@@ -13,6 +13,9 @@
 - 前端目录：`web/`
 - 前端 API 基址：`VITE_API_BASE_URL`（根目录 `.env`）
 - Mock 方式：外围交互由后端 mock（企查查、提醒、异常对账）
+- 数据库维护脚本：根目录 `db/`
+  - DDL：`db/mcp.ddl`
+  - DML：`db/mcp.dml`
 
 ## 运行与联调
 
@@ -20,6 +23,14 @@
 - 前端启动：
   - `cd web`
   - `npm run dev -- --host`
+
+## 测试文档要求
+
+- 目录：`docs/manuals/`
+- 命名：`<功能>测试手册.md`
+- 格式：包含“前置 / 用例 / 预期结果 / 常见问题排查”（参考现有手册）
+- 新增或更新手册时，不要写入 `README.md` 的正文，只在 README 的“测试手册”列表里注明
+- 测试完成记录：`docs/manuals/<功能>测试完成记录.md`
 
 ## 关键 API（最小闭环 + mock）
 

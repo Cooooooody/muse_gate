@@ -20,6 +20,8 @@ import FinancePanel from './components/Finance/FinancePanel';
 import LoginPage from './components/Auth/LoginPage';
 import { getProfile, upsertProfile } from './services/profileApi';
 import { getReminders } from './services/reminderApi';
+import { performLogout } from './services/logout';
+import { getSessionSafe } from './services/authBootstrap';
 import { mapEmailToRole } from './services/roleMapper';
 import { supabase } from './services/supabaseClient';
 import { UserRole } from './types';
@@ -66,15 +68,17 @@ const App: React.FC = () => {
     let cancelled = false;
 
     const initSession = async () => {
-      const { data } = await supabase.auth.getSession();
+      const { session: nextSession } = await getSessionSafe(() =>
+        supabase.auth.getSession()
+      );
       if (cancelled) {
         return;
       }
-      setSession(data.session ?? null);
-      if (data.session?.user) {
+      setSession(nextSession);
+      if (nextSession?.user) {
         const nextRole = await resolveRoleForUser(
-          data.session.user.id,
-          data.session.user.email ?? null
+          nextSession.user.id,
+          nextSession.user.email ?? null
         );
         if (!cancelled) {
           setRole(nextRole);
@@ -155,9 +159,15 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setRole(null);
+    await performLogout({
+      signOut: (options) => supabase.auth.signOut(options),
+      onReset: () => {
+        setSession(null);
+        setRole(null);
+        setActiveTab('dashboard');
+        setAuthError(null);
+      }
+    });
   };
 
   const isSalesRole = role === UserRole.SALES || role === UserRole.ADMIN;

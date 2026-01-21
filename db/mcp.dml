@@ -1,0 +1,212 @@
+-- Seed auth users for local testing.
+-- Idempotent: skips if email already exists.
+
+insert into auth.instances (id, created_at, updated_at)
+select gen_random_uuid(), now(), now()
+where not exists (
+  select 1 from auth.instances
+);
+
+with new_user as (
+  insert into auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data
+  )
+  select
+    (select id from auth.instances order by created_at limit 1),
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    'admin@test.com',
+    crypt('123456', gen_salt('bf')),
+    now(),
+    now(),
+    now(),
+    jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
+    '{}'::jsonb
+  where not exists (
+    select 1 from auth.users where email = 'admin@test.com'
+  )
+  returning id, email
+)
+insert into auth.identities (
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  last_sign_in_at,
+  created_at,
+  updated_at
+)
+select
+  new_user.id,
+  jsonb_build_object('sub', new_user.id::text, 'email', new_user.email),
+  'email',
+  new_user.id::text,
+  now(),
+  now(),
+  now()
+from new_user
+on conflict do nothing;
+
+with new_user as (
+  insert into auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data
+  )
+  select
+    (select id from auth.instances order by created_at limit 1),
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    'sales@test.com',
+    crypt('123456', gen_salt('bf')),
+    now(),
+    now(),
+    now(),
+    jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
+    '{}'::jsonb
+  where not exists (
+    select 1 from auth.users where email = 'sales@test.com'
+  )
+  returning id, email
+)
+insert into auth.identities (
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  last_sign_in_at,
+  created_at,
+  updated_at
+)
+select
+  new_user.id,
+  jsonb_build_object('sub', new_user.id::text, 'email', new_user.email),
+  'email',
+  new_user.id::text,
+  now(),
+  now(),
+  now()
+from new_user
+on conflict do nothing;
+
+with new_user as (
+  insert into auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data
+  )
+  select
+    (select id from auth.instances order by created_at limit 1),
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    'finance@test.com',
+    crypt('123456', gen_salt('bf')),
+    now(),
+    now(),
+    now(),
+    jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
+    '{}'::jsonb
+  where not exists (
+    select 1 from auth.users where email = 'finance@test.com'
+  )
+  returning id, email
+)
+insert into auth.identities (
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  last_sign_in_at,
+  created_at,
+  updated_at
+)
+select
+  new_user.id,
+  jsonb_build_object('sub', new_user.id::text, 'email', new_user.email),
+  'email',
+  new_user.id::text,
+  now(),
+  now(),
+  now()
+from new_user
+on conflict do nothing;
+
+with new_user as (
+  insert into auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    raw_app_meta_data,
+    raw_user_meta_data
+  )
+  select
+    (select id from auth.instances order by created_at limit 1),
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    'client@test.com',
+    crypt('123456', gen_salt('bf')),
+    now(),
+    now(),
+    now(),
+    jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
+    '{}'::jsonb
+  where not exists (
+    select 1 from auth.users where email = 'client@test.com'
+  )
+  returning id, email
+)
+insert into auth.identities (
+  user_id,
+  identity_data,
+  provider,
+  provider_id,
+  last_sign_in_at,
+  created_at,
+  updated_at
+)
+select
+  new_user.id,
+  jsonb_build_object('sub', new_user.id::text, 'email', new_user.email),
+  'email',
+  new_user.id::text,
+  now(),
+  now(),
+  now()
+from new_user
+on conflict do nothing;

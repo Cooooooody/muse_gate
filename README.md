@@ -30,12 +30,13 @@ npm run dev -- --host
 - `docs/manuals/提醒机制测试手册.md`
 - `docs/manuals/合同审核与确认测试手册.md`
 - `docs/manuals/主体选择与校验测试手册.md`
+- `docs/manuals/登录与鉴权测试手册.md`
+- `docs/manuals/登录与鉴权测试完成记录.md`
 
-## 手动验证
-
-- Login with admin@musegate.local / admin and confirm role badge
-- Login with finance@musegate.local / finance and confirm Finance panel accessible
-- Logout and ensure app returns to login page
+测试文档要求：
+- 目录：`docs/manuals/`
+- 命名：`<功能>测试手册.md`
+- 格式：包含“前置 / 用例 / 预期结果 / 常见问题排查”
 
 ## 需求澄清
 

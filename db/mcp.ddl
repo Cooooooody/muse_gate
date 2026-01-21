@@ -2,7 +2,7 @@
 
 create extension if not exists pgcrypto;
 
-create type user_role as enum ('sales', 'supervisor', 'finance', 'client');
+create type user_role as enum ('admin', 'sales', 'supervisor', 'finance', 'client');
 create type subject_source as enum ('bank', 'client_entry', 'contract_history');
 create type payment_type as enum ('bank_transfer', 'qr');
 create type contract_status as enum ('draft', 'pending_approval', 'approved', 'executed', 'void');
@@ -14,6 +14,21 @@ create table if not exists profiles (
   phone text,
   created_at timestamptz not null default now()
 );
+
+alter table profiles enable row level security;
+
+create policy "Profiles: select own"
+  on profiles for select
+  using (auth.uid() = id);
+
+create policy "Profiles: insert own"
+  on profiles for insert
+  with check (auth.uid() = id);
+
+create policy "Profiles: update own"
+  on profiles for update
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 create table if not exists subjects (
   id uuid primary key default gen_random_uuid(),
