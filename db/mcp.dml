@@ -70,6 +70,32 @@ where not exists (
   select 1 from public.subjects where name = '宁波银行' and source = 'bank'
 );
 
+insert into public.subjects (name, tax_id, address, source)
+select '上海未来创意设计有限公司', '91310115MA1H7XU48M', '上海市浦东新区XX路18号', 'client_entry'
+where not exists (
+  select 1 from public.subjects where name = '上海未来创意设计有限公司' and source = 'client_entry'
+);
+
+insert into public.subjects (name, tax_id, address, source)
+select '个人主体A', null, null, 'client_entry'
+where not exists (
+  select 1 from public.subjects where name = '个人主体A' and source = 'client_entry'
+);
+
+insert into public.bank_transfers (sender_name, sender_account, amount, received_at, mg_account)
+select '个人主体A', '6222330000000001', 3000.00, '2026-01-20', 'MG-2026'
+where not exists (
+  select 1 from public.bank_transfers
+  where sender_name = '个人主体A' and amount = 3000.00 and mg_account = 'MG-2026'
+);
+
+insert into public.bank_transfers (sender_name, sender_account, amount, received_at, mg_account)
+select '个人主体A', '6222330000000002', 4000.00, '2026-01-20', 'MG-2026'
+where not exists (
+  select 1 from public.bank_transfers
+  where sender_name = '个人主体A' and amount = 4000.00 and mg_account = 'MG-2026'
+);
+
 with new_user as (
   insert into auth.users (
     instance_id,

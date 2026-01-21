@@ -24,6 +24,7 @@ const SalesContractEntry: React.FC = () => {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [hasVerified, setHasVerified] = useState(false);
 
   // Form State
   const initialFormData = {
@@ -134,6 +135,7 @@ const SalesContractEntry: React.FC = () => {
   const handleSubjectSelect = (name: string) => {
     setSubjectName(name);
     setIsManualInput(false);
+    setHasVerified(false);
   };
 
   const togglePayment = (payment: PaymentRecord) => {
@@ -171,14 +173,20 @@ const SalesContractEntry: React.FC = () => {
         address: result.address,
       }));
       setVerifyMessage('主体信息校验通过（mock）。');
+      setHasVerified(true);
     } catch {
       setVerifyMessage('校验失败，请稍后重试。');
+      setHasVerified(false);
     } finally {
       setIsVerifying(false);
     }
   };
 
   const nextStep = async () => {
+    if (step === 1 && !isBankTransfer && !hasVerified) {
+      setVerifyMessage('非公对公转账需先完成企查查校验。');
+      return;
+    }
     if (step === 2 && selectedPayments.some((payment) => !payment.id)) {
       setMatchError('匹配记录缺少付款ID，请刷新后重试。');
       return;
@@ -255,6 +263,7 @@ const SalesContractEntry: React.FC = () => {
       setMatchError(null);
       setVerifyMessage(null);
       setSubmitError(null);
+      setHasVerified(false);
       setFormData(initialFormData);
     } catch (error) {
       setSubmitError('提交失败，请检查网络或稍后重试。');
@@ -331,6 +340,7 @@ const SalesContractEntry: React.FC = () => {
                     onChange={(e) => {
                       setSubjectName(e.target.value);
                       setIsManualInput(true);
+                      setHasVerified(false);
                     }}
                     placeholder={isBankTransfer ? "请在历史记录中查找或输入匹配名称" : "请输入或选择主体"} 
                     className={`w-full border-slate-300 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-blue-500 ${isBankTransfer && !isManualInput ? 'bg-slate-50' : ''}`}
