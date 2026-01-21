@@ -1,5 +1,28 @@
 # 基础业务要求
 
+## 项目结构
+
+- `web/`：前端
+- `backend/`：后端
+- `.env`：环境变量（包含 `VITE_API_BASE_URL` 与数据库连接）
+
+## 启动方式
+
+后端：
+```
+~/dev/apache-maven-3.9.12/bin/mvn -f backend/pom.xml spring-boot:run
+```
+
+前端：
+```
+cd web
+npm run dev -- --host
+```
+
+## Mock 说明
+
+外围交互（企查查校验、提醒、对账异常）由后端 mock 返回，前端通过真实 API 调用。
+
 一、销售端合同录入功能
 
 1、信息主体录入逻辑

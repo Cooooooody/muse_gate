@@ -12,6 +12,23 @@
 - Maven 仓库：阿里云仓库（项目内 `backend/pom.xml` 已配置）
 - 前端目录：`web/`
 - 前端 API 基址：`VITE_API_BASE_URL`（根目录 `.env`）
+- Mock 方式：外围交互由后端 mock（企查查、提醒、异常对账）
+
+## 运行与联调
+
+- 后端启动：`~/dev/apache-maven-3.9.12/bin/mvn -f backend/pom.xml spring-boot:run`
+- 前端启动：
+  - `cd web`
+  - `npm run dev -- --host`
+
+## 关键 API（最小闭环 + mock）
+
+- 合同：`POST /api/contracts`，`POST /api/contracts/{id}/submit`，`POST /api/contracts/{id}/confirm`
+- 付款匹配：`GET /api/payments/matches?mgAccount=`
+- 财务录入：`POST /api/finance/bank-transfers`
+- 对账：`GET /api/reconciliation/unmatched`，`GET /api/reconciliation/mismatch`（mock）
+- 提醒：`GET /api/reminders/unmatched`（mock）
+- 主体：`GET /api/subjects/bank-history`，`GET /api/subjects/client`，`POST /api/subjects/verify`（mock）
 
 ## 基础业务要求
 
