@@ -55,10 +55,12 @@ export interface Invoice {
   date: string;
 }
 
+export type StoredUserRole = 'admin' | 'sales' | 'supervisor' | 'finance' | 'client';
+
 export interface Profile {
   id: string;
   email: string;
-  role: UserRole;
+  role: StoredUserRole;
 }
 
 export enum UserRole {

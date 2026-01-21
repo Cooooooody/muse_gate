@@ -22,7 +22,11 @@ import { getProfile, upsertProfile } from './services/profileApi';
 import { getReminders } from './services/reminderApi';
 import { performLogout } from './services/logout';
 import { getSessionSafe } from './services/authBootstrap';
-import { mapEmailToRole } from './services/roleMapper';
+import {
+  mapEmailToRole,
+  mapStoredRoleToUserRole,
+  mapUserRoleToStoredRole
+} from './services/roleMapper';
 import { supabase } from './services/supabaseClient';
 import { UserRole } from './types';
 
@@ -43,18 +47,19 @@ const App: React.FC = () => {
 
   const resolveRoleForUser = async (userId: string, email: string | null) => {
     const fallbackRole = mapEmailToRole(email ?? '');
+    const fallbackStoredRole = mapUserRoleToStoredRole(fallbackRole);
     const { data, error } = await getProfile(userId);
     if (error) {
       return fallbackRole;
     }
     if (data) {
-      return data.role;
+      return mapStoredRoleToUserRole(data.role);
     }
 
     const { error: upsertError } = await upsertProfile({
       id: userId,
       email: email ?? '',
-      role: fallbackRole
+      role: fallbackStoredRole
     });
 
     if (upsertError) {
